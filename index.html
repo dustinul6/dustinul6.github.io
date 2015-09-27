@@ -1,103 +1,153 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8"/>
-    <title>Tzu-Yao's web page</title>
-    <script src="js/d3.min.js"></script>
-    <script src="js/nvd3.min.js"></script>
-    <script src="js/topojson.min.js" charset="utf-8"></script>
-    <style type="text/css" media="screen">
-      /* Your style here */
-    .chart {
-      height: 600px;
-      width: 500px;
-      border: solid black 1px;
-    }
-    .bar rect {
-      fill: steelblue;
-    }
-    .greenbar rect {
-      fill: green;
-    }
-    .bluebar rect {
-      fill: steelblue;
-    }
-    .bar text {
-      text-anchor: right;
-      alignment-baseline: middle;
-      fill: white;
-    }
-  </style>
-</head>
+<meta charset="utf-8">
+<style>
 
-<body>
-  <!-- Your HTML content here -->
-  <h1>My web page</h1>
-  <svg class = "chart">
-  </svg>
-  <div id="chart">
-    <svg></svg>
-  </div>
-  <script charset="utf-8">
-    function trans(d,i){
-      return 25*i
-    }
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  margin: auto;
+  position: relative;
+  width: 960px;
+}
 
-/* Your script here */
-var data1 = [2, 15, 18, 24, 36, 50];
-var kmt = [100, 30];
-var dpp = [56, 12];
+text {
+  font: 10px sans-serif;
+}
 
-var xscale = d3.scale.linear().domain([0, 50]).range([0, 400]);
-var barmargin = 5;
-var barheight = 30;
-var bars = d3.select(".chart")
-.selectAll("g")
-.data(data1);
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
 
-  bars
-.enter()
+form {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+</style>
+<form>
+  <label><input type="radio" name="mode" value="grouped"> Grouped</label>
+  <label><input type="radio" name="mode" value="stacked" checked> Stacked</label>
+</form>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script>
+
+var n = 4, // number of layers
+    m = 58, // number of samples per layer
+    stack = d3.layout.stack(),
+    layers = stack(d3.range(n).map(function() { return bumpLayer(m, .1); })),
+    yGroupMax = d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y; }); }),
+    yStackMax = d3.max(layers, function(layer) { return d3.max(layer, function(d) { return d.y0 + d.y; }); });
+
+var margin = {top: 40, right: 10, bottom: 20, left: 10},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x = d3.scale.ordinal()
+    .domain(d3.range(m))
+    .rangeRoundBands([0, width], .08);
+
+var y = d3.scale.linear()
+    .domain([0, yStackMax])
+    .range([height, 0]);
+
+var color = d3.scale.linear()
+    .domain([0, n - 1])
+    .range(["#aad", "#556"]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .tickSize(0)
+    .tickPadding(6)
+    .orient("bottom");
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
   .append("g")
-  .attr("class", "bar")
-  .attr("transform",  function(d,i){
-    return "translate(0," + (barmargin + barheight)*i +")";
-  });
-console.log(bars);
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-bars
-.append("rect")
-.style("width", function(d, i) {
-  return xscale(d) + "px";
-})
-.style("height", barheight + "px");
+var layer = svg.selectAll(".layer")
+    .data(layers)
+  .enter().append("g")
+    .attr("class", "layer")
+    .style("fill", function(d, i) { return color(i); });
 
-bars.append("text").attr("x", function(d) { 
-  return xscale(d) - 20 +"" ;
-}).attr("y", "10").attr("class", "bar").text(function(d){
-  return d + "";
-});
+var rect = layer.selectAll("rect")
+    .data(function(d) { return d; })
+  .enter().append("rect")
+    .attr("x", function(d) { return x(d.x); })
+    .attr("y", height)
+    .attr("width", x.rangeBand())
+    .attr("height", 0);
 
-nv.addGraph(function() {
-  var chart = nv.models.multiBarChart();
+rect.transition()
+    .delay(function(d, i) { return i * 10; })
+    .attr("y", function(d) { return y(d.y0 + d.y); })
+    .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); });
 
-  chart.xAxis
-  .tickFormat(d3.format(',f'));
+svg.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis);
 
-chart.yAxis
-  .tickFormat(d3.format(',.1f'));
+d3.selectAll("input").on("change", change);
 
-d3.select('#chart svg')
-  .datum(data())
-  .transition().duration(500)
-  .call(chart)
-  ;
+var timeout = setTimeout(function() {
+  d3.select("input[value=\"grouped\"]").property("checked", true).each(change);
+}, 2000);
 
-nv.utils.windowResize(chart.update);
+function change() {
+  clearTimeout(timeout);
+  if (this.value === "grouped") transitionGrouped();
+  else transitionStacked();
+}
 
-return chart;
-});
+function transitionGrouped() {
+  y.domain([0, yGroupMax]);
 
+  rect.transition()
+      .duration(500)
+      .delay(function(d, i) { return i * 10; })
+      .attr("x", function(d, i, j) { return x(d.x) + x.rangeBand() / n * j; })
+      .attr("width", x.rangeBand() / n)
+    .transition()
+      .attr("y", function(d) { return y(d.y); })
+      .attr("height", function(d) { return height - y(d.y); });
+}
 
-  </script>
-</body>
-</html>
+function transitionStacked() {
+  y.domain([0, yStackMax]);
+
+  rect.transition()
+      .duration(500)
+      .delay(function(d, i) { return i * 10; })
+      .attr("y", function(d) { return y(d.y0 + d.y); })
+      .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); })
+    .transition()
+      .attr("x", function(d) { return x(d.x); })
+      .attr("width", x.rangeBand());
+}
+
+// Inspired by Lee Byron's test data generator.
+function bumpLayer(n, o) {
+
+  function bump(a) {
+    var x = 1 / (.1 + Math.random()),
+        y = 2 * Math.random() - .5,
+        z = 10 / (.1 + Math.random());
+    for (var i = 0; i < n; i++) {
+      var w = (i / n - y) * z;
+      a[i] += x * Math.exp(-w * w);
+    }
+  }
+
+  var a = [], i;
+  for (i = 0; i < n; ++i) a[i] = o + o * Math.random();
+  for (i = 0; i < 5; ++i) bump(a);
+  return a.map(function(d, i) { return {x: i, y: Math.max(0, d)}; });
+}
+
+</script>
