@@ -1,1 +1,69 @@
-Hello World
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Tzu-Yao's web page</title>
+<script src="js/d3.min.js"></script>
+<script src="js/nvd3.min.js"></script>
+<script src="js/topojson.min.js" charset="utf-8"></script>
+<style type="text/css" media="screen">
+/* Your style here */
+.chart {
+  height: 600px;
+  width: 500px;
+  border: solid black 1px;
+}
+.bar rect {
+  fill: steelblue;
+}
+.bar text {
+  text-anchor: right;
+  alignment-baseline: middle;
+  fill: white;
+}
+</style>
+</head>
+
+<body>
+    <!-- Your HTML content here -->
+    <h1>My web page</h1>
+    <svg class = "chart">
+    </svg>
+    <script charset="utf-8">
+      function trans(d,i){
+        return 25*i
+      }
+
+      /* Your script here */
+    var data1 = [2, 15, 18, 24, 36, 50];
+    var xscale = d3.scale.linear().domain([0, 50]).range([0, 400]);
+    var barmargin = 5;
+    var barheight = 30;
+    var bars = d3.select(".chart")
+    .selectAll("g")
+    .data(data1);
+
+  bars
+.enter()
+  .append("g")
+  .attr("class", "bar")
+  .attr("transform",  function(d,i){
+    return "translate(0," + (barmargin + barheight)*i +")";
+  });
+console.log(bars);
+
+bars
+.append("rect")
+.style("width", function(d, i) {
+  return xscale(d) + "px";
+})
+.style("height", barheight + "px");
+
+bars.append("text").attr("x", function(d) { 
+  return xscale(d) - 20 +"" ;
+}).attr("y", "10").attr("class", "bar").text(function(d){
+  return d + "";
+});
+    </script>
+  </body>
+</html>
