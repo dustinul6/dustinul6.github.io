@@ -1,47 +1,59 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="utf-8"/>
-<title>Tzu-Yao's web page</title>
-<script src="js/d3.min.js"></script>
-<script src="js/nvd3.min.js"></script>
-<script src="js/topojson.min.js" charset="utf-8"></script>
-<style type="text/css" media="screen">
-/* Your style here */
-.chart {
-  height: 600px;
-  width: 500px;
-  border: solid black 1px;
-}
-.bar rect {
-  fill: steelblue;
-}
-.bar text {
-  text-anchor: right;
-  alignment-baseline: middle;
-  fill: white;
-}
-</style>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Tzu-Yao's web page</title>
+    <script src="js/d3.min.js"></script>
+    <script src="js/nvd3.min.js"></script>
+    <script src="js/topojson.min.js" charset="utf-8"></script>
+    <style type="text/css" media="screen">
+      /* Your style here */
+    .chart {
+      height: 600px;
+      width: 500px;
+      border: solid black 1px;
+    }
+    .bar rect {
+      fill: steelblue;
+    }
+    .greenbar rect {
+      fill: green;
+    }
+    .bluebar rect {
+      fill: steelblue;
+    }
+    .bar text {
+      text-anchor: right;
+      alignment-baseline: middle;
+      fill: white;
+    }
+  </style>
 </head>
 
 <body>
-    <!-- Your HTML content here -->
-    <h1>My web page</h1>
-    <svg class = "chart">
-    </svg>
-    <script charset="utf-8">
-      function trans(d,i){
-        return 25*i
-      }
+  <!-- Your HTML content here -->
+  <h1>My web page</h1>
+  <svg class = "chart">
+  </svg>
+  <div id="chart">
+    <svg></svg>
+  </div>
+  <script charset="utf-8">
+    function trans(d,i){
+      return 25*i
+    }
 
-      /* Your script here */
-    var data1 = [2, 15, 18, 24, 36, 50];
-    var xscale = d3.scale.linear().domain([0, 50]).range([0, 400]);
-    var barmargin = 5;
-    var barheight = 30;
-    var bars = d3.select(".chart")
-    .selectAll("g")
-    .data(data1);
+/* Your script here */
+var data1 = [2, 15, 18, 24, 36, 50];
+var kmt = [100, 30];
+var dpp = [56, 12];
+
+var xscale = d3.scale.linear().domain([0, 50]).range([0, 400]);
+var barmargin = 5;
+var barheight = 30;
+var bars = d3.select(".chart")
+.selectAll("g")
+.data(data1);
 
   bars
 .enter()
@@ -64,6 +76,28 @@ bars.append("text").attr("x", function(d) {
 }).attr("y", "10").attr("class", "bar").text(function(d){
   return d + "";
 });
-    </script>
-  </body>
+
+nv.addGraph(function() {
+  var chart = nv.models.multiBarChart();
+
+  chart.xAxis
+  .tickFormat(d3.format(',f'));
+
+chart.yAxis
+  .tickFormat(d3.format(',.1f'));
+
+d3.select('#chart svg')
+  .datum(data())
+  .transition().duration(500)
+  .call(chart)
+  ;
+
+nv.utils.windowResize(chart.update);
+
+return chart;
+});
+
+
+  </script>
+</body>
 </html>
